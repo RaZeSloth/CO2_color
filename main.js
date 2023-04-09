@@ -14,8 +14,8 @@ const netatmo_api = new netatmo({
 
 console.log('Starting up...')
 let setToDanger = false;
-let firstStart = true;
-let colorOnStart;
+let defaultColor;
+
 async function run() {
     await netatmo_api.getStationsData(async (err, data) => {
         const C02Levels = data[0].dashboard_data.CO2;
@@ -24,7 +24,10 @@ async function run() {
                 console.log(`CO2 levels are too high: ${C02Levels} ppms`)
                 const miku_tuba = (await lifx.ListLights('label:Miku tuba')).data[0];
                 if (miku_tuba.power === 'on') {
+                    defaultColor = HSK_to_Hex(miku_tuba.color);
+                    console.log(`Saved and setted default color as ${defaultColor}`)
                     await lifx.SetState(miku_tuba.id, 'on', '#ff0000', miku_tuba.brightness)
+                    console.log(`Turned lights red`)
                     setToDanger = true;
                 } else {
                     console.log('Miku tuba is off')
@@ -35,23 +38,11 @@ async function run() {
             if (setToDanger) {
                 const miku_tuba = (await lifx.ListLights('label:Miku tuba')).data[0];
                 if (miku_tuba.power === 'on') {
-                    await lifx.SetState(miku_tuba.id, 'on', colorOnStart, miku_tuba.brightness)
+                    await lifx.SetState(miku_tuba.id, 'on', defaultColor || '#fee7a5', miku_tuba.brightness)
                 } else {
                     console.log('Miku tuba is off')
                 }
                 setToDanger = false;
-            }
-            if (firstStart) {
-                const miku_tuba = (await lifx.ListLights('label:Miku tuba')).data[0];
-                colorOnStart = HSK_to_Hex(miku_tuba.color);
-                if (miku_tuba.power === "on") {
-                    console.log(`Saved and setted default color as ${colorOnStart}`)
-                    await lifx.SetState(miku_tuba.id, 'on', colorOnStart, miku_tuba.brightness)
-                } else {
-                    console.log('Miku tuba is off, setting default color')
-                    colorOnStart = "#fee7a5"
-                }
-                firstStart = false;
             }
         }
     });
